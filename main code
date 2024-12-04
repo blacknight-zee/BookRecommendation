@@ -1,0 +1,178 @@
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+from sklearn import neighbors
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+from google.colab import files
+
+from google.colab import files
+
+# Upload the file
+uploaded = files.upload()
+
+# List uploaded files
+print(uploaded) 
+
+df = pd.read_csv('books.csv', on_bad_lines='skip')
+print(df.head())
+
+df.isnull().sum()
+
+df.describe()
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Use a valid Matplotlib style
+plt.style.use('ggplot')  # Or 'fivethirtyeight', 'bmh', etc.
+
+# Filter top books with more than 1,000,000 ratings
+top_ten = df[df['ratings_count'] > 1000000]
+
+# Sort by average rating
+top_ten_sorted = top_ten.sort_values(by='average_rating', ascending=False)
+
+# Create the plot
+plt.figure(figsize=(10, 10))
+data = top_ten_sorted.head(10)
+
+# Plot with Seaborn's barplot
+sns.barplot(x="average_rating", y="title", data=data, palette='inferno')
+
+# Display the plot
+plt.show()
+
+
+
+# Use a valid Matplotlib style (since seaborn-whitegrid is not available)
+plt.style.use('ggplot')  # 'ggplot' or 'fivethirtyeight' should work
+
+# Filter top books with more than 1,000,000 ratings
+top_ten = df[df['ratings_count'] > 1000000]
+
+# Sort by average rating
+top_ten_sorted = top_ten.sort_values(by='average_rating', ascending=False)
+
+# Create the plot
+plt.figure(figsize=(10, 10))
+data = top_ten_sorted.head(10)
+
+# Plot with Seaborn's barplot
+sns.barplot(x="average_rating", y="title", data=data, palette='inferno')
+
+# Display the plot
+plt.show()
+
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Use a valid Matplotlib style (since 'seaborn-whitegrid' might not be available)
+plt.style.use('ggplot')  # You can also use 'fivethirtyeight', 'bmh', etc.
+
+# Sort DataFrame by ratings_count in descending order and get the top 10
+most_rated = df.sort_values('ratings_count', ascending=False).head(10).set_index('title')
+
+# Create a figure for the plot
+plt.figure(figsize=(15, 10))
+
+# Create the barplot using Seaborn with correct keyword arguments
+ax = sns.barplot(x=most_rated['ratings_count'], y=most_rated.index, palette='inferno')
+
+# Adding the ratings_count value on top of each bar
+totals = []
+for i in ax.patches:
+    totals.append(i.get_width())  # Get the width (ratings_count) of each bar
+total = sum(totals)
+
+# Display the value on top of each bar
+for i in ax.patches:
+    ax.text(i.get_width() + 0.2, i.get_y() + 0.2, str(round(i.get_width())), fontsize=15, color='black')
+
+# Display the plot
+plt.show()
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Ensure that the 'average_rating' column is of type float
+df['average_rating'] = df['average_rating'].astype(float)
+
+# Create the plot with a specified figure size
+fig, ax = plt.subplots(figsize=[15, 10])
+
+# Use sns.histplot() instead of the deprecated sns.distplot()
+sns.histplot(df['average_rating'], kde=True, ax=ax, color='blue')
+
+# Set the title and labels
+ax.set_title('Average Rating Distribution for All Books', fontsize=20)
+ax.set_xlabel('Average Rating', fontsize=13)
+ax.set_ylabel('Frequency', fontsize=13)
+
+# Display the plot
+plt.show()
+
+
+# Create the relplot
+ax = sns.relplot(
+    data=df,
+    x="average_rating",
+    y="ratings_count",
+    color='red',
+    sizes=(100, 200),
+    height=7,
+    marker='o'
+)
+
+# Set the title and axis labels for the plot
+ax.fig.suptitle("Relation between Rating Counts and Average Ratings", fontsize=15)
+ax.set_axis_labels("Average Rating", "Ratings Count")
+
+# Adjust layout to make sure the title fits
+plt.tight_layout()
+plt.subplots_adjust(top=0.95)  # Adjust the top space to avoid title overlap
+
+# Display the plot
+plt.show()
+
+plt.figure(figsize=(15,10))
+ax = sns.relplot(x="average_rating", y="  num_pages", data = df, color = 'red',sizes=(100, 200), height=7, marker='o')
+ax.set_axis_labels("Average Rating", "Number of Pages")
+
+df2 = df.copy()
+
+df2.loc[ (df2['average_rating'] >= 0) & (df2['average_rating'] <= 1), 'rating_between'] = "between 0 and 1"
+df2.loc[ (df2['average_rating'] > 1) & (df2['average_rating'] <= 2), 'rating_between'] = "between 1 and 2"
+df2.loc[ (df2['average_rating'] > 2) & (df2['average_rating'] <= 3), 'rating_between'] = "between 2 and 3"
+df2.loc[ (df2['average_rating'] > 3) & (df2['average_rating'] <= 4), 'rating_between'] = "between 3 and 4"
+df2.loc[ (df2['average_rating'] > 4) & (df2['average_rating'] <= 5), 'rating_between'] = "between 4 and 5"
+
+rating_df = pd.get_dummies(df2['rating_between'])
+language_df = pd.get_dummies(df2['language_code'])
+
+features = pd.concat([rating_df, 
+                      language_df, 
+                      df2['average_rating'], 
+                      df2['ratings_count']], axis=1)
+
+from sklearn.preprocessing import MinMaxScaler
+min_max_scaler = MinMaxScaler()
+features = min_max_scaler.fit_transform(features)
+
+model = neighbors.NearestNeighbors(n_neighbors=6, algorithm='ball_tree')
+model.fit(features)
+dist, idlist = model.kneighbors(features)
+
+def BookRecommender(book_name):
+    book_list_name = []
+    book_id = df2[df2['title'] == book_name].index
+    book_id = book_id[0]
+    for newid in idlist[book_id]:
+        book_list_name.append(df2.loc[newid].title)
+    return book_list_name
+    
+BookNames = BookRecommender('Harry Potter and the Half-Blood Prince (Harry Potter  #6)')
+BookNames
